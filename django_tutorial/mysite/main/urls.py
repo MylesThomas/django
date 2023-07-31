@@ -1,7 +1,8 @@
 from django.urls import path
 
-from . import views # "import the .py file named views, from this current directory."
+from . import views
 
 urlpatterns = [
     path("<str:name>", views.index, name="index"),
+    #path("", views.default, name="default"),
 ]

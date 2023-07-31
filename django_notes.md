@@ -209,7 +209,7 @@ git commit --message "Created requirements.txt and view function #1, mysite"
 git push -u origin main
 ```
 
-####
+#### View Django app
 
 Start by firing up in Google Chrome:
 
@@ -276,7 +276,7 @@ That is why we need to set the url that links to this application! (We can have 
 
 Edit the mysite/mysite/urls.py file:
 
-```python
+```py
 from django.contrib import admin
 from django.urls import path, include # add this in...
 
@@ -684,6 +684,216 @@ git push
 ```
 
 ### Video #3: Admin Dashboard
+
+Admin Dashboard
+
+- The admin page/dashbaord is a place where you can view valuable information about your site, specifically your database tables and models.
+
+- relates to databases
+  - querying
+    - get
+    - set
+    - delete
+
+Let's start by getting a list of items:
+
+- first, open the shell
+
+```sh
+cd mysite
+python manage.py shell
+```
+
+Next, begin with basic querying on conditions:
+
+```py
+# imports
+from main.models import Item, ToDoList
+# get the list of objects
+t = ToDoList.objects
+# print all of list (currently length=1)
+t.all()
+
+# begin querying: using the filter()
+# get all objects that start with t
+t.filter(name__startswith="Tim") # gets the same set as above
+t.filter(name__startswith="Myles Thomas") # get empty QuerySet (does not exist)
+
+# check if an item actually exists...
+t.filter(id=1) # still exists
+del_object = t.get(id=1) # grab object to delete
+del_object.delete() # deletes the object and returns deleted the entire ToDoList
+t.all() # empty QuerySet, we deleted the 1 object
+```
+
+Let's go ahead and create 2 to do lists that we can work with:
+
+```py
+t1 = ToDoList(name="first list")
+t1.save()
+
+t2 = ToDoList(name="second list")
+t2.save()
+
+quit() # Exit Python interpreter back out to command prmopt after!
+```
+
+Now that we have added data, let's check it out in the admin dashboard!
+
+Step #1: Create login account
+
+- Reasoning for this: If you were to have the following code and run it, you would get to an admin dashboard where you don't have a login!
+
+Note: As you proceed, make sure that only root directory ie. mysite/urls.py has the `path("admin/", admin.site.urls),` functionality in urlpatterns
+
+- Typically: You just have to declare it in the root urls.py of the project in order for it to work how it is supposed to
+
+```sh
+cd mysite
+python manage.py runserver
+chrome.exe http://127.0.0.1:8000/admin/
+```
+
+Like I mentioned above, you will get here and become stuck, so let's get unstuck:
+
+Create superuser:
+
+```sh
+python manage.py createsuperuser
+```
+
+After filling in the info, Fire the server up again...
+
+```sh
+cd mysite
+python manage.py runserver
+chrome.exe http://127.0.0.1:8000/admin
+```
+
+### How I was able to figure it out:
+
+Fire up the server and type in http://127.0.0.1:8000/admin.
+
+Entry point: `mysite/urls.py`:
+
+```py
+from django.contrib import admin
+from django.urls import path, include
+
+urlpatterns = [
+    path("admin/", admin.sites.urls),
+    path("", include("main.urls")),
+    # Remember: This is importing from main.urls.py, so no need to change this!
+    # ie. "Whatever path is given, we hand over to main.urls.py"
+]
+```
+
+What this says: "try going to http://127.0.0.1:8000/admin/. If you cannot, head to `main/urls.py`, where you may be able to match based on name or id index."
+
+#### What I was doing wrong
+
+Before: http://127.0.0.1:8000/admin
+
+- this was attempting to match based on id=name with name 'admin'
+
+After: http://127.0.0.1:8000/admin/
+
+Yeah...
+
+error message:
+
+DoesNotExist at /admin
+ToDoList matching query does not exist.
+Request Method: GET
+Request URL: http://127.0.0.1:8000/admin
+Django Version: 4.2.3
+Exception Type: DoesNotExist
+Exception Value:
+ToDoList matching query does not exist.
+Exception Location: C:\Users\Myles\django\django_tutorial\env\Lib\site-packages\django\db\models\query.py, line 637, in get
+Raised during: main.views.index
+Python Executable: C:\Users\Myles\django\django_tutorial\env\Scripts\python.exe
+Python Version: 3.11.3
+Python Path:
+['C:\\Users\\Myles\\django\\django_tutorial\\mysite',
+'C:\\Users\\Myles\\AppData\\Local\\Programs\\Python\\Python311\\python311.zip',
+'C:\\Users\\Myles\\AppData\\Local\\Programs\\Python\\Python311\\DLLs',
+'C:\\Users\\Myles\\AppData\\Local\\Programs\\Python\\Python311\\Lib',
+'C:\\Users\\Myles\\AppData\\Local\\Programs\\Python\\Python311',
+'C:\\Users\\Myles\\django\\django_tutorial\\env',
+'C:\\Users\\Myles\\django\\django_tutorial\\env\\Lib\\site-packages']
+
+#### Admin Dashboard - Overview
+
+Authentication and Authorization
+
+Groups:
+
+- we will cover this later...
+
+Users: Stores the user we just created
+
+- USERNAME: myles
+- EMAIL ADDRESS: mylescgthomas@gmail.com
+- PASSWORD: _encrypted_
+
+Where is our database that we have been creating data with, though?
+
+#### Give the dashboatd access to our database
+
+By default, 'main' is empty since nothing is registered in `main/admin.py`.
+
+Head to `main/admin.py` and do the following:
+
+- import the model Object
+- Register it
+
+```py
+from django.contrib import admin
+from .models import ToDoList # need to import this
+
+# Register your models here.
+admin.site.register(ToDoList) # register this, to see ToDoList on admin/ site!
+```
+
+Refresh the admin/ page, and you should now be able to see `To do lists` under Main.
+
+Current Status:
+
+- Main
+  - To do lists
+    - first list
+    - second list
+
+Notes:
+
+- you can go into here and edit/change things, see history/etc.
+- Very useful tool to make sure that whatever you are doing, is working properly!
+
+If we wanted to add Item and see it in the admin/, then this is what our code should look like:
+
+```py
+from django.contrib import admin
+from .models import ToDoList, Item
+
+# Register your models here.
+admin.site.register(ToDoList)
+admin.site.register(Item)
+```
+
+Note on current status:
+
+- To do lists: 2 items
+- Items: 0 items
+
+#### Git
+
+```sh
+git status
+git add .
+git commit -m "Completed video #3 of django_tutorial"
+git push
+```
 
 ### Video #4: Templates & Custom HTML
 
