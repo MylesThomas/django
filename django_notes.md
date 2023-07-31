@@ -52,7 +52,7 @@ git push -u origin main
 
 - run the shell script:
 
-```
+```sh
 cd django (ie. C:\Users\Myles\django)
 bash setup.sh
 ```
@@ -83,6 +83,7 @@ Goal of this video: Setup the project!
 
 - setup project
 - understandin how django works
+  - manage.py does all of the work
 - running on local machine
 - server running on local machine
 
@@ -166,7 +167,6 @@ Create a Django project:
 ```sh
 cd django_tutorial
 django-admin startproject mysite
-cd mysite
 ```
 
 Note: This creates a new directory 'mysite' (Make sure not to name it numpy or something like that...)
@@ -175,7 +175,10 @@ Note: This creates a new directory 'mysite' (Make sure not to name it numpy or s
 
 Fire up Dev Server on localport:8080 to test if our app is working:
 
-- python manage.py runserver
+```sh
+cd mysite
+python manage.py runserver
+```
 
 Notes:
 
@@ -185,11 +188,22 @@ Notes:
 
 - How to stop server from running: Ctrl-c
 
+#### Create our first app, 'main'
+
+```sh
+cd django_tutorial
+cd mysite
+python manage.py startapp main
+```
+
+Note: It is VERY important that 'main' is inside of 'mysite'!
+
 #### Update git
 
 Make sure to be inside of django_tutorial before running these lines of code...
 
 ```sh
+cd ../../../django
 git add .
 git commit --message "Created requirements.txt and view function #1, mysite"
 git push -u origin main
@@ -197,15 +211,141 @@ git push -u origin main
 
 ####
 
-Go to: mysite/mysite/main/views:
+Start by firing up in Google Chrome:
+
+```sh
+cd django_tutorial/mysite
+python manage.py runserver
+```
+
+Go to: mysite/main/views.py:
 
 - This stores the actual view is the application
   - Where the views (a webpage)
     - Code that serves HTTP requests, and then shows things on the website.
 
+#### Creating the function that represents the view:
+
+- start with 1 view for now
+- a view in other words: the code that gets run when an HTTP response is made.
+
 ```py
+from django.shortcuts import render
+from django.http import HttpResponse
+
+# Create your views here.
+def index(response):
+    return HttpResponse("<h1>tech with tim!</h1>") # need this code to be HTML
+
+# This 2nd view could be imported into urls.py for a different webpage:
+
+# def index2(response):
+#     return HttpResponse("<h1>tech with tim!</h1>")
+```
+
+Next, create a new file inside of this main application, which represents the URLs.
+
+#### Create urls.py
+
+Creating main/urls.py, which the paths to our different webpages:
+
+```sh
+from django.urls import path
+
+from . import views # "import the .py file named views, from this current directory."
+urlpatterns = [
+    path("", views.index, name="index")
+]
+```
+
+Notes:
+
+- What this does: If we get into the application's homepage ie. /, we serve this HttpResponse.
+-
+- We still have to link this application `main` to the project of `mysite`...
+
+#### Linking main to mysite
+
+Remember this about the folders:
+
+- django_tutorial: project folder
+- mysite/main: application we link to the project
+  - a bit confusing, but proceed...
+
+That is why we need to set the url that links to this application! (We can have more than 1 application in 1 project...)
+
+Edit the mysite/mysite/urls.py file:
+
+```python
+from django.contrib import admin
+from django.urls import path, include # add this in...
+
+urlpatterns = [
+    path('admin/', admin.site.urls), # more on this one later...
+    path('', include("main.urls")), # if we don't type anything, take me here!
+
+    # What include function does: We take that given path,
+    # and anything that would be after it, we send it to the
+    #path('home/', include("main.urls")) this would look for a home path...
+
+]
 
 ```
+
+What this says:
+
+- "IF: we navigate to this path ie. http://127.0.0.1:8000/ or http://127.0.0.1:8000/sign-up
+- "THEN: navigate to this certain path '/' or '/sign-up'
+
+Notes:
+
+- admin: admin dashboard
+- '': Take me to main.urls.py
+  - main.urls.py takes the path we have been given, takes us to the view function we imported from views.
+
+Save the files, and you will see the results.
+
+#### Creating a 2nd page
+
+This should help show how everything is working!
+
+Head to main.views.py and create a 2nd function, `v1()`:
+
+```python
+from django.shortcuts import render
+from django.http import HttpResponse
+
+# Create your views here.
+def index(response):
+    return HttpResponse("<h1>tech with tim!</h1>") # need this code to be HTML
+
+def v1(response):
+    return HttpResponse("<h1>view 1!</h1>")
+```
+
+Remember: The mysite/urls.py decides "What is going to happen ie. what page we direct to when we go to a certain link"
+
+- Right now: All are sent to main.urls (except for admin...)
+
+Edit the code in main/urls.py to account for the 2nd view:
+
+```py
+from django.urls import path
+
+from . import views
+
+urlpatterns = [
+    path("", views.index, name="index"),
+    path("v1/", views.v1, name="view #1"),
+]
+```
+
+Now, when you connect to the server with /v1, you will see a different screen!
+
+Notes:
+
+- Remember: `mysite/urls.py` is importing from `main.urls.py`, so no need to change both files!!
+  - ie. "Whatever path is given, we hand over to main.urls.py"
 
 ---
 
