@@ -347,6 +347,39 @@ Notes:
 - Remember: `mysite/urls.py` is importing from `main.urls.py`, so no need to change both files!!
   - ie. "Whatever path is given, we hand over to main.urls.py"
 
+Finish up by closing down the server with Ctrl-c.
+
+#### Update git
+
+Make sure to open up a command prompt for django (if you do not, it will only edit from inside of your directory, ie. it will not update these notes!)
+
+```sh
+git status
+git add .
+git commit -m "Completed Video #1 or django_tutorial"
+git push
+```
+
+### Video #2: SQLite3 DataBase Tutorial
+
+### Video #3: Admin Dashboard
+
+### Video #4: Templates & Custom HTML
+
+### Video #5: Simple Forms
+
+### Video #6: Custom Forms
+
+### Video #7: How to Add a Sidebar
+
+### Video #8: How to Add Bootstrap
+
+### Video #9: User Registration & Sign Up Page
+
+### Video #10: Login, Logout and User Authentication
+
+### Video #11: User Specific Pages/Access
+
 ---
 
 ## Series: Tech With Tim - Django & React Tutorial
