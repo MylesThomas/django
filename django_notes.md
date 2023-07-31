@@ -38,8 +38,8 @@ Init git / Connect to a remote Git Repository
 ```bash
 #! /bin/sh
 
-git config --global user.email "mylescgthomas@gmail.com"
-git config --global user.name "mylesthomas"
+#git config --global user.email "mylescgthomas@gmail.com"
+#git config --global user.name "mylesthomas"
 
 echo "# django" >> README.md
 git init
@@ -51,8 +51,13 @@ git push -u origin main
 ```
 
 - run the shell script:
-  - cd django
-  - sh setup.sh
+
+```
+cd django (ie. C:\Users\Myles\django)
+bash setup.sh
+```
+
+Note: I had issues with bash setup.sh, so I ended up using the command line like normal
 
 ## Series: Tech With Tim - Django Tutorial
 
@@ -74,14 +79,14 @@ Django = Full stack web application
   - rare framework, usually you need to know CSS/PP/etc.
   - really nice if you already know python!
 
-Goal of this video: Setup the project
+Goal of this video: Setup the project!
 
 - setup project
 - understandin how django works
 - running on local machine
 - server running on local machine
 
-Other videos:
+Other video topics:
 
 - databases
 - templates
@@ -89,32 +94,118 @@ Other videos:
 - large project
 - everything needed to make an actual website
 
-#### Install Django
+#### Get started by seting up a Project Directory and Virtual Environment
+
+Get started by seting up a Project Directory and Virtual Environment
+
+- Create/Init the Virtual Environment:
+
+  - cd django_tutorial
+  - py -m venv env
+
+Notes:
+
+- The 'env' folder is where your new directory is
+- We do not want this to go up to git...
+
+  - follow this [Link](https://github.com/github/gitignore/blob/main/Python.gitignore) to copy/paste the .gitignore file into the django_tutorial directory as `.gitignore`
+
+- Activate the Virtual Environment:
+
+  - where python
+  - .\env\Scripts\activate
+
+- Leaving the virtual environment:
+  - deactivate
+
+#### Install Django into your Virtual Environment
+
+Confirm you are in virtual env:
+
+- .\env\Scripts\activate
+  - You should see (env) before everything in your command prompt...
+  - `pip list` should return pip/setuptools
 
 Install Django with pip:
 
-- pip install django
+- py -m pip install django
+- pip list
 
-#### Setup Virtual Environment
+Notes:
 
-Create the virtual environment
+- if you want to download a specific page, do it like this: py -m pip install "requests==2.18.4"
+- best practice: do NOT use >=
 
-- python -m venv
-  - python -m venv /path/to/directory
+#### Optional: Create a requirements.txt file
 
-Activate virtual environment
+Instead of manually updating each package everytime, you can declare all dependencies in a Requirements File. For example you could create a `requirements.txt` file containing:
 
--
+```
+Django==4.2.3
+```
 
-Notes: He is working from a virtual environment
+Create and run the file with these commands: python -m pip install -r requirements.txt
 
-- Python's official documentation says: "A virtual environment is a Python environment such that the Python interpreter, libraries and scripts installed into it are isolated from those installed in other virtual environments, and (by default) any libraries installed in a “system” Python, i.e., one which is installed as part of your operating system"
+```sh
+# python -m pip freeze
+python -m pip freeze > requirements.txt
+python -m pip install -r requirements.txt
+```
 
-  - when you activate a virtual environment for your project, your project becomes its own self contained application, independent of the system installed Python and its modules
-  - Your new virtual environment has its own pip to install libraries, its own libraries folder, where new libraries are added, and its own Python interpreter for the Python version you used to activate the environment.
+- make sure to include the -r flag for 'recursive'
 
-- The `venv` module supports creating lightweight "virtual environments", each with their own independent set of Python packages installed in their site directories.
-  - A virtual environment is created on top of an existing Python installation, known as the virtual environment’s “base” Python, and may optionally be isolated from the packages in the base environment, so only those explicitly installed in the virtual environment are available.
+Notes:
+
+- I found out which version of django was the newest by googling OR downloading manually and writing it down
+- location of this file: root directory ie. C:\Users\Myles\django\django_tutorial
+
+#### Create a new app / Django project
+
+Create a Django project:
+
+```sh
+cd django_tutorial
+django-admin startproject mysite
+cd mysite
+```
+
+Note: This creates a new directory 'mysite' (Make sure not to name it numpy or something like that...)
+
+#### Fire up Dev Server on localport:8080
+
+Fire up Dev Server on localport:8080 to test if our app is working:
+
+- python manage.py runserver
+
+Notes:
+
+- When pasting the link into Google Chrome, should see a message saying "The install worked successfully! Congratulations!"
+
+  - If port 8080 is blocked, do this to run on another port: python manage.py runserver 5050
+
+- How to stop server from running: Ctrl-c
+
+#### Update git
+
+Make sure to be inside of django_tutorial before running these lines of code...
+
+```sh
+git add .
+git commit --message "Created requirements.txt and view function #1, mysite"
+git push -u origin main
+```
+
+####
+
+Go to: mysite/mysite/main/views:
+
+- This stores the actual view is the application
+  - Where the views (a webpage)
+    - Code that serves HTTP requests, and then shows things on the website.
+
+```py
+
+```
 
 ---
 
