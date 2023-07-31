@@ -362,6 +362,327 @@ git push
 
 ### Video #2: SQLite3 DataBase Tutorial
 
+#### Intro
+
+Database Topics:
+
+- setup
+- add entries
+- retrieve entries
+
+Database of choice: SQLite3
+
+- other choices out there, this one is the best and easiest for beginners!
+
+Notes:
+
+- The information we store is our database and will most likely be more important than the templates/html
+  - make the info 1st, display it 2nd!
+
+#### Configuration
+
+Step #1: Configure the mysite/mysite/settings.py file
+
+- Add our new 'main' app to the `INSTALLED_APPS` (this tells Django that we have another application with dependencies, etc.)
+
+Add this code:
+
+```py
+INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    # new
+    'main.apps.MainConfig',
+]
+```
+
+What this means:
+
+- in main, we have main/apps.py
+  - there is a class function MainConfig() in this file
+
+Step #2: Migrations, which are Django's way of propogating changes you make to your models into your database Schema.
+
+While in mysite, run the following line of code:
+
+```sh
+cd mysite
+python manage.py migrate
+```
+
+What this does:
+
+- We have updates settings.py, so let's run this to reflect those changes
+
+We are now ready to begin settings up our models.
+
+#### Models
+
+Database Model: Modeling information
+
+- makes it easier to work with data
+  - grab data
+  - add methods
+  - etc.
+- contains definitive source info about your data
+
+Let's create our first data model in mysite/models.py:
+
+- class with the name of the model
+
+```py
+from django.db import models
+
+# Create your models here.
+
+# #1. creating database object
+# (we create a class variable that has name of field AND data type)
+class ToDoList(models.Model):
+    # define attributes
+    # name
+    name = models.CharField(max_length=200) # name=name, dtype=string
+
+    # method to get meaningful text (useful for prints)
+    def __str__(self):
+        return self.name
+
+# 2. item for to do lsit
+# (a little different since it is related to the todolist object)
+class Item(models.Model):
+    # ForeignKey: an undefined object for many-to-one relationships
+    ### to do list: can only be 1
+    ### items in the list: can be infinite!
+
+    # on_delete=models.CASCADE:
+    ### "if, we delete todolist
+    ### then, delete all items for that to dolist"
+    todolist = models.ForeignKey(ToDoList, on_delete=models.CASCADE)
+
+    # text: character field
+    text = models.CharField(max_length=300) # note: always complete max_length arg
+
+    # complete: boolean field (have we finished making this item?)
+    complete = models.BooleanField()
+
+    # the meaningful text
+    def __str__(self):
+        return self.text
+```
+
+What is going on here:
+
+- We are creating a model class that inherits from `models.Model`, which is a database model class setup already for Django
+- Info about our model:
+  1. To do list
+  2. Items for the to do list
+
+Now that we have modified our models, we must tell Django that we have done that!
+
+```sh
+cd mysite
+python manage.py makemigrations main
+```
+
+What this does:
+
+- make migrations ie. add something to the staging area
+  - app=name
+
+What this does NOT do is actually apply the changes to the app (it essentially is doing version control...) but to apply the change:
+
+```sh
+python manage.py migrate
+```
+
+Migrations have now been applied!
+
+- if you go into main/migrations/0001_initial.py, you will see changes made
+  - useful for a few things;
+    - see past changes
+    - revert past changes
+
+Now that we have a fully functioming database, let's add some things to it!
+
+#### Adding Objects
+
+Open Python shell to add some things into the database.
+
+```sh
+cd mysite
+python manage.py shell
+```
+
+First, import our models:
+
+```py
+# we are not in main directory, so make sure to add main. prior
+from main.models import Item, ToDoList
+```
+
+Next, create a to do list and add it to the database:
+
+```py
+t = ToDoList(name="Tim\'s List")
+t.save() # quickly save to DB with this
+```
+
+View all of the ToDoList's in the DataBase:
+
+```py
+ToDoList.objects.all() # .all() returns a QuerySet, ie. an array of all objects
+```
+
+Look at the first item in the to do list:
+
+```py
+ToDoList.objects.get(id=1) # objects are added incrementing, and starts at 1 (instead of 0)
+# note: if we did not add __str__ method, this would return an ugly memory address!
+
+# another way to get this item: ()
+ToDoList.objects.get(name="Tim's List")
+
+# this way will not work: (id=2 has not been created yet, nor has Myles's list)
+ToDoList.objects.get(id=2)
+ToDoList.objects.get(name="Myles's List")
+```
+
+Next, let's create an Item for our first to do list!
+
+#### Creating Items
+
+```py
+# viewing items (there will be an empty query set, as we did not add anything yet)
+# note: because we added relationship between item and todolist, there is a set of items for each to do list
+t.item_set.all() # empty <QuerySet[]>
+
+# Adding the items to the to do list:
+# - we 'create' a new item
+t.item_set.create(text="Go to the mall", complete=False)
+
+# looking at the new item
+t.item_set.all() # <QuerySet [<Item: Go to the mall>]>
+t.item_set.get(id=1) # <Item: Go to the mall>
+t.item_set.get(id=2) # error
+```
+
+Now, in the future, instead of using command line, we will probably set it up in our web browser.
+
+Let's practice this by doing the following:
+
+- remove v1 from `` since that was just for an example
+- add functionality so that if you type in a path /, you will be able to see that number on your screen
+
+Cleaning up `main/views.py` ...
+
+```py
+def index(response, id):
+    return HttpResponse("<h1>%s</h1>" % id) # need this code to be HTML
+
+# def v1(response):
+    # return HttpResponse("<h1>view 1!</h1>")
+```
+
+Next, do the following to `main/urls.py`:
+
+- remove v1 code
+- <int: id>: Look for some int in the path
+  - if found: pass that id to views.index
+
+```py
+urlpatterns = [
+    path("<int:id>", views.index, name="index"),
+    # path("v1/", views.v1, name="view #1"),
+]
+```
+
+Save + Test this out with the following code:
+
+```sh
+cd mysite
+python manage.py runserver
+```
+
+If you go into your browser, you will see the following with the following urls:
+
+- http://127.0.0.1:8000/1 gives a 1
+- http://127.0.0.1:8000/99999 gives a 99999
+- http://127.0.0.1:8000 gives an error (we got rid of that functionality...)
+
+That was nice practice, but let's implement this so that we are viewing data from our database:
+
+Edit `main/views.py` once again:
+
+- imports
+- get the to do list (for the correct id)
+- return the name of that to do list object
+
+```py
+from django.shortcuts import render
+from django.http import HttpResponse
+from .models import ToDoList, Item # import objects from .models
+# Create your views here.
+
+def index(response, id):
+    ls = ToDoList.objects.get(id=id) # get the to do list for that id...
+    return HttpResponse("<h1>%s</h1>" % ls.name) # print the name of the ToDoList
+```
+
+When you save and the server refreshes, you will get the following for each:
+
+- http://127.0.0.1:8000/1: Tim's List
+- http://127.0.0.1:8000/2: error (does not exist yet)
+
+Let's try this one more time but with the name attribute instead of id!
+
+Edit `main/views.py` once again:
+
+```py
+from django.shortcuts import render
+from django.http import HttpResponse
+from .models import ToDoList, Item
+# Create your views here.
+
+def index(response, name): # change input
+    ls = ToDoList.objects.get(name=name) # name=name input
+    item = ls.item_set.get(id=1) # get the first value of the set of todolist itmes
+    return HttpResponse("<h1>%s</h1><br></br><p>%s<p>" % (ls.name, str(item.text))) # still prints the name of the ToDoList AND item.name
+
+```
+
+Then, Edit `main/urls.py` to reflect the new string input:
+
+```py
+from django.urls import path
+
+from . import views # "import the .py file named views, from this current directory."
+
+urlpatterns = [
+    path("<str:name>", views.index, name="index"),
+]
+```
+
+Try out these urls and see what you get:
+
+- http://127.0.0.1:8000/Tim's%20List: (Tim's List, Go to the mall)
+- http://127.0.0.1:8000/2: error
+
+#### Git commit
+
+Ctrl-c to exit the server and run the following code to finish up this section:
+
+```sh
+cd ..
+cd ..
+git status
+git add .
+git commit -m "Completed Video #2 of django_tutorial
+git push
+```
+
 ### Video #3: Admin Dashboard
 
 ### Video #4: Templates & Custom HTML
