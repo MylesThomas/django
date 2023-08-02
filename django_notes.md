@@ -897,21 +897,1241 @@ git push
 
 ### Video #4: Templates & Custom HTML
 
+Django is really good because you can do dynamic HTML
+- easy way to connect backend to frontend
+  - why people love django!
+
+Examples we will cover later:
+- forms
+- sidebar
+- hosting with heroku (hopefully free)
+
+#### Creating Templates
+
+What we will do: Create templates that allow us to see our to-do list on the way in a somewhat nice format
+- later videos: Bootstrap for custom CSS
+- right now: HTML
+
+Creating a Homepage:
+
+Head to `main/urls.py` and add in the following:
+
+```py
+from django.urls import path
+
+from . import views
+
+urlpatterns = [
+    path("<int:id>", views.index, name="index"),
+    path("", views.home, name="home"), # new homepage
+]
+```
+
+And in `main.views.py` ...
+
+```py
+from django.shortcuts import render
+from django.http import HttpResponse
+from .models import ToDoList, Item
+# Create your views here.
+
+def index(response, name): # change input
+    ls = ToDoList.objects.get(name=name) # name=name input
+    item = ls.item_set.get(id=1) # get the first value of the set of todolist itmes
+    return HttpResponse("<h1>%s</h1><br></br><p>%s<p>" % (ls.name, str(item.text))) # still prints the name of the ToDoList AND item.name
+
+def home(response): # note: no variable
+    pass
+```
+
+Reminder: What we have been doing so far is passing an HTTP response to our views
+- putting HTML into the functions
+  - not efficient or scalable!!
+
+How to fix:
+- write our own HTML files
+- load them up + display to the screen
+
+Step #1: Create directory in `main` named `templates`
+
+```sh
+cd mysite
+cd main
+mkdir templates
+cd templates
+```
+
+Step #2: Create directory in `templates` named `main`
+
+```sh
+mkdir main
+cd main
+```
+
+Note: It is weird having main again, but in django you NEED to have a folder inside with the same name as the application
+- if you do not, the templates will not load!
+
+Step #3: Create a new HTML file `templates/main/base.html`
+- Why it is named this:
+
+```html
+<html>
+<head>
+    <title>Tim's Website</title>
+</head>
+
+<body>
+    <p>Base Template</p>
+</body>
+</html>
+```
+
+Note: If your HTML is not autocompleting, check out these 2 references:
+- [Stack Overflow Article](https://stackoverflow.com/questions/30696863/vscode-not-auto-completing-html)
+- [Pictures Explanation](https://i.stack.imgur.com/RpE7P.png)
+
+#### Extending a Template
+
+Step #4: Create another HTML file `templates/main/home.html`
+
+```html
+{% extends 'main/base.html' %}
+```
+
+Topic of discussion here: Template Inheritance
+- Something very nice about building websites with Django
+- Ours is base.html
+  - it will be the base layout of ALL of our website
+    - example: on Instagram, the bar being up at the top, search bar, icons, etc. is the base at the top
+
+So what we are going to do essentially is the following:
+- Create base.html
+- In each of the other .html file, inherit base.html with 1 line of code
+  - always is there, unless we choose to override with child templates!
+
+Step #5: Render the templates
+
+Remove http response from our `main/views.py` and replace with render for our views.
+
+```py
+from django.shortcuts import render
+from django.http import HttpResponse
+from .models import ToDoList, Item
+# Create your views here.
+
+def index(response, id):
+    ls = ToDoList.objects.get(id=id)
+    return render(response, "main/base.html", {})
+
+def home(response):
+    return render(response, "main/home.html", {}) # leave the dictionary blank for now!
+```
+
+This is all we need to show the HTML templates!
+
+Run the site to look:
+
+```sh
+cd django_tutorial
+cd mysite
+python manage.py runserver
+```
+
+Reminder: Essentially what happens:
+- You direct to the "" endpoint because of the "" and views.home imported in the file `main/urls.py`
+- When views.home is called, we render "main/home.html"
+- This makes its way all the way up to `main/base.html` (since main/home.html is just an extension from it)
+
+Now, let's type in the 1/ endpoint and see what happens:
+- The same base template should be showing up.
+
+Note: If not, try the 2/ with this in _
+
+```
+
+```
+
+#### Using Variables
+
+Let's say we want the base template to show all of our to do list items:
+
+```html
+<!-- base.html -->
+<html>
+<head>
+    <title>Tim's Website</title>
+</head>
+
+<body>
+    <p>({name})</p>
+</body>
+</html>
+
+```
+
+What we did here:
+- to do list name: variable `name`
+  - the corresponding `name` gets passed through to the .html file via the dict in `main/views.py`
+
+    ```py
+    def index(response, id):
+    ls = ToDoList.objects.get(id=id)
+    return render(response, "main/base.html", {"name": ls.name})
+    ```
+
+    We must make sure we do something similar for the home view:
+    - Note: This is a simple fix and we will come back to this
+
+    ```py
+    def home(response):
+    return render(response, "main/home.html", {"name": "temp"})
+    ```
+
+Let's go back and talk about some more advanced stuff we can do.
+
+#### Content Blocks
+
+Ideally, our base page should not have information unique to a list on the home page.
+
+We will set up a content block. This can be over-ridden by other templates.
+
+```html
+<html>
+<head>
+    <title>{% block title %}Tim's Site {% endblock %}</title>
+</head>
+
+<body>
+    <div id="content" name="content">
+        
+        {% block content %}
+        Default value for title (gets rendered if nothing in the file inheriting)
+        {% endblock %}
+    </div>
+
+</body>
+</html>
+
+```
+
+Now what we can do:
+- From inside of other templates that extend off of `main/base.html`, we can pick and choose what goes inside of this block.
+
+For example, with home page `main/home.html`:
+
+```html
+{% extends 'main/base.html' %}
+
+{% block title %}
+Home
+{% endblock %}
+
+{% block content %}
+<h1>Home Page</h1>
+{% endblock %}
+```
+
+Next, go into `main/views.py` and remove the variables from the dicts (we no longer need them...)
+
+```py
+def index(response, id):
+    ls = ToDoList.objects.get(id=id)
+    return render(response, "main/base.html", {})
+
+def home(response):
+    return render(response, "main/home.html", {})
+```
+
+Render the home page via http://127.0.0.1:8000/
+
+What we have done to get Home Page on the screen:
+- Take our base
+- The content for each page that inherits from this 
+  - anything can go inside of this block content
+  - you can always create more than 1 block
+
+Next, we learn about how you don't actually want to use `main/base.html` inside of 1 of your views..
+- we want to inherit from it, and customize it from each individual view.
+
+#### List Form + Looping
+
+Create another template to view the to do list ie. `templates/main/list.html`:
+- displays name of list
+- displays items in the list
+
+```html
+{% extends 'main/base.html' %}
+
+{% block title %}
+View List
+{% endblock %}
+
+{% block content %}
+    <h1>{{ls.name}}</h1>
+    <ul>
+        {% for item in ls.item_set.all %}
+        <li>{{item.text}}</li>
+        {% endfor %}
+    </ul>
+{% endblock %}
+```
+
+What we did:
+- in `main/views.py`, we passed in the entire ls variable.
+- in `templates/main/list.html`, we used this variable to fill up the template.
+  - ls.name is easy
+  - for the items, we had to use python code to loop through the items in each list
+
+Notes:
+- We do not need brackets for the .all
+- You must end for loops
+
+Make the following changes as well to `main/views.py`:
+
+```py
+def index(response, id):
+    ls = ToDoList.objects.get(id=id)
+    return render(response, "main/list.html", {"ls": ls}) # changed to list.html AND passed in ls
+```
+
+Add items to the list so that we have items to look at with endpoint 2/
+
+```sh
+python manage.py shell
+```
+
+```py
+from main.models import ToDoList
+ls = ToDoList.objects.get(id=2)
+print(ls)
+print(ls.item_set.all())
+
+ls.item_set.create(text="first item", complete=False)
+ls.item_set.create(text="second item", complete=False)
+ls.item_set.create(text="third item", complete=False)
+
+print(ls.item_set.all())
+quit()
+```
+
+```sh
+python manage.py runserver
+```
+
+The list with 3 items is now on the screen with endpoint 2/ !
+
+#### If Statements
+
+Let's only look at the items in a list that have `complete=True`
+
+Edit the file `templates/main/list.html`:
+
+```html
+{% extends 'main/base.html' %}
+
+{% block title %}
+View List
+{% endblock %}
+
+{% block content %}
+    <h1>{{ls.name}}</h1>
+    <ul>
+        {% for item in ls.item_set.all %}
+            {% if item.complete == True %}
+                <li>{{item.text}}  -  COMPLETE</li>
+            {% else %}
+                <li>{{item.text}}  -  INCOMPLETE</li>
+            
+            {% endif %}
+        {% endfor %}
+    </ul>
+{% endblock %}
+```
+
+Note: You must use endif OR an else at end of if-statement, just like a for loop.
+
+None of the items will be visible now - Make another item in this list that will be able to be seen.
+
+```sh
+python manage.py shell
+```
+
+```py
+from main.models import ToDoList
+ls = ToDoList.objects.get(id=2)
+print(ls)
+print(ls.item_set.all())
+
+ls.item_set.create(text="fourth item that you cannot see", complete=True)
+
+print(ls.item_set.all())
+quit()
+```
+
+```sh
+python manage.py runserver
+```
+
 ### Video #5: Simple Forms
+
+#### Intro
+
+This video: Forms
+- essential to any website
+  - login format
+  - create new... form
+
+What we will do: Create a new to do list
+
+Right now: Create a new to do list, without using the command prompt like before!
+
+#### Create a new page
+
+Starting out: Path to the page, creating a new template:
+
+Go into `main/urls.py` and add a 3rd path:
+
+```py
+from django.urls import path
+
+from . import views
+
+urlpatterns = [
+    path("<int:id>", views.index, name="index"),
+    path("", views.home, name="home"),
+    path("create/", views.create, name="create"), # new
+    
+]
+```
+
+Fix the import error we just created by going in `main/views.py` and creating that:
+
+```py
+def create(response):
+    return render(response, "main/create.html", {})
+```
+
+Create the .html file you are referencing above:
+
+```html
+{% extends 'main/base.html' %}
+
+{% block title %} Create New List {% endblock %}
+
+{% block content %}
+Create Page
+{% endblock %}
+```
+
+Next, we need to create a form that shows up on our page so that you can input data.
+
+#### Create a form
+
+How we will do this using Django's way, which makes this very easy:
+- `form` is what makes it so easy
+
+Create `mysite/main/forms.py`:
+
+```py
+from django import forms
+
+class CreateNewList(forms.Form): # inherit from Form
+    name = forms.CharField(label="Name", max_length=200) # label: what shows up before little box
+    check = forms.BooleanField()
+```
+
+Now we need to pass this form into our HTML file ie. `main/create.html`.
+
+#### Pass form to HTML
+
+We must edit `main/views.py` so that it does the following:
+- import the form
+- pass an instance of the form
+
+```py
+# new code
+from .forms import CreateNewList
+
+def create(response):
+    form = CreateNewList() # create new form, which gets passed into the HTML
+    return render(response, "main/create.html", {"form": form})
+```
+
+Next, pass this form into our HTML file ie. `main/create.html`:
+
+```html
+{% extends 'main/base.html' %}
+
+{% block title %} Create New List {% endblock %}
+
+{% block content %}
+Create Page
+<form method="post" action="/create/">
+    {{form}}
+    <button type="submit", name="save">Create New</button>
+</form>
+{% endblock %}
+```
+
+Note: The button and whatnot is standard
+
+Let's check it out!
+
+```sh
+python manage.py runserver
+```
+
+What we see now on development server at http://127.0.0.1:8000/create/:
+- title: Create Page
+- name: fill in box for name
+- check: boolean checkmark
+- button: 'Create New' button
+
+These obviously don't look great. We want to add...
+- html
+- css
+
+Good thing - Django will allow us to do so!
+
+#### Form Layouts
+
+How to look at the form in a different way:
+
+`form.as_table`: What is showing right now
+
+`form.as_p`: Vertically down
+
+`form.as_ul`: Little dots ie. list items
+
+Example with our code that looks much better:
+
+```html
+<!-- create.html -->
+<form method="post" action="/create/">
+    {{form.as_p}}
+    <button type="submit", name="save">Create New</button>
+</form>
+```
+
+Try this now: Hit 'Create New' before you fill everything out - did you notice what happened?
+- Nice looking JavaScript comes up
+
+Why?
+- Django creates form in HTML for us
+  - It would not be like this for us (another advantage of Django)
+
+#### Optional Fields
+
+Right now, if you do not check the box, you will get another JavaScript error.
+
+How to fix:
+
+```py
+# forms.py
+check = forms.BooleanField(required=False)
+```
+
+#### CRSF Verification
+
+Right now, if you click submit, you get the following error:
+
+```
+Forbidden (403)
+CSRF verification failed. Request aborted.
+```
+
+Why? The CSRF token is missing.
+
+How to fix: Put the following in your .html file everytime you create a form!
+
+```html
+<!-- create.html -->
+<form method="post" action="/create/">
+    {% csrf_token %} <!-- new line of code -->
+    {{form.as_p}}
+    <button type="submit", name="save">Create New</button>
+</form>
+```
+
+When you submit, there will be no more issues.
+
+Where is this information being sent, though?
+
+#### POST vs GET
+
+When we hit submit, it is all bundled up and sent to the servers.
+
+
+Now, time to talk about the different between POST/GET requests.
+- POST: Sending data / modifications to the server
+  - Good for anything that secret ie. a password to needs to be encrypted
+    - other people can see it if it is not encrypted
+
+- GET: When you want to grab information from the server
+  - All of the infromation gets pasted into the url
+    - the url is read
+
+Why do we have both?
+- Different security reasons
+  - Example: Technically, GET can do everything POST does
+  - POST: data is encrypted
+    - example: 
+  - GET: data goes into the url ie. https://www.google.com/search?q=hey
+    - example: bookmark url
+
+In general takeaway: Use POST!
+
+#### POST
+
+When we use the create page window, we use a post request
+- encrypts the name
+- need to use POST for when we modify the database
+
+We have already set this actually! Look:
+
+```html
+<form method="post" action="/create/">
+```
+
+What happens when we have post and get requests?
+- it gets passed through the view
+  - the view knows if it is POST/GET
+
+Notes:
+- Default: GET
+- Recommended: POST
+
+How to implement this in the code? (we will be doing things different than post)
+
+
+```py
+def create(response):
+    if response.method == "POST":
+        form = CreateNewList(response.POST)
+    
+    else:
+        form = CreateNewList()
+    
+    return render(response, "main/create.html", {"form": form})
+```
+
+What is happening in this code:
+- response.POST has all of the info/data in the form
+  - it has a dict of all of the ID's etc. and saves them
+  - when you passed this to create a new list, you will have passed the values from response.POST
+    - ie. name
+    - ie. boolean
+
+Updating this code to reflect more of how we would use this later on:
+
+```py
+# views.py
+def create(response):
+    if response.method == "POST":
+        form = CreateNewList(response.POST) # form takes data from the POST
+        
+        if form.is_valid(): # automatically is created and exists bc we inherit from forms.Form
+            n = form.cleaned_data["name"] # accessing cleaned/unencrypted data from the POST
+            t = ToDoList(name=n) # create new to do list
+            t.save() # save to DataBase
+    
+    else:
+        form = CreateNewList()
+    
+    return render(response, "main/create.html", {"form": form})
+```
+
+After doing this, let's try creating a new ToDoList and see what happens:
+
+```sh
+python manage.py runserver
+```
+
+name: bingo
+checkbox: false
+
+After clicking, even if you cannot tell (page did not change), you did create a new ToDoList!
+
+#### HTTP Response Redirect
+
+Right now, we are simply returning the form with whatever information we passed in it.
+
+Let's now re-direct to that new to do list (so we can see what it looks like!)
+
+```py
+# views.py
+from django.http import HttpResponse, HttpResponseRedirect
+
+def create(response):
+    if response.method == "POST":
+        form = CreateNewList(response.POST) # form takes data from the POST
+        
+        if form.is_valid(): # automatically is created and exists bc we inherit from forms.Form
+            n = form.cleaned_data["name"] # accessing cleaned/unencrypted data from the POST
+            t = ToDoList(name=n) # create new to do list
+            t.save() # save to DataBase
+            
+        return HttpResponseRedirect("/%i" %t.id) # if response is post... do this instead
+```
+
+Now, instead of staying on `main/create.html`, we will redirect to `t`, which is our new to do list that says "bingo" at the top!
+
+Next video: Custom Forms
+Future videos: Bootstrap CSS and more
 
 ### Video #6: Custom Forms
 
+Forms that are more dynamic than the ones before!
+
+Goal:
+- Allow user to add an item to their ToDoList
+- Add check buttons (to see if they are complete, or not)
+
+Starting out, let's delete this code that we no longer need:
+
+```html
+<!-- list.html -->
+{% if item.complete == True %}
+  <li>{{item.text}}</li> <!-- Remove 'COMPLETE' -->
+{% else %}
+  <li>{{item.text}}</li> <!-- Remove 'INCOMPLETE' -->
+```
+
+Next, start setting up a form inside of the HTML file
+- Why we need this: To pass information back to our View using a POST request
+  - did user click check button?
+  - did they want to add to list?
+
+We need to pass that to view with a POST request - this is what the form in `templates/main/list.html` is for!
+
+```html
+<!-- list.html -->
+
+{% extends 'main/base.html' %}
+
+{% block title %}
+View List
+{% endblock %}
+
+{% block content %}
+    <h1>{{ls.name}}</h1>
+
+    <form action="post" action="#"> <!-- beginning of new form -->
+        <!-- csrf token (necessary for a form) -->
+        {% csrf_token %}
+        <ul>
+            {% for item in ls.item_set.all %}
+                {% if item.complete == True %}
+                    <!-- About this list item:
+                    type: checkbox (straightforward)
+                    value: clicked (it is complete and has been clicked)
+                    name: id of the item
+                    - sets the name equal to the ID of the item ie. id=4
+                    - c helps you get the correct button
+                    checked: "default to start off as checked"
+                    -->
+                    <li><input type="checkbox", value="clicked", name="c{{item.id}}" checked>
+                        {{item.text}}
+                    </li>
+                {% else %}
+                    <!-- same thing as above, but without the 'checked' at the end! -->
+                    <li><input type="checkbox", value="clicked", name="c{{item.id}}">
+                        {{item.text}}
+                    </li>
+                {% endif %}
+            {% endfor %}
+        </ul>
+
+        <!-- 
+        2 new buttons: SAVE and ADD ITEM 
+        SAVE: saves changes to checks
+        ADD ITEM: adds the item we will get from a text field
+        -->
+        <button type="submit", name="save", value="save">Save</button>
+        <input type="text", name="new">
+        <button type="submit", name="newItem", value="newItem">Add Save</button>
+        
+    </form> <!-- end of new form -->
+{% endblock %}
+
+```
+
+What we did here:
+- Wrapped most of this in a form
+- Created new buttons
+  - save
+  - add item
+- 
+- SCRF
+
+#### Saving a form + Saving the check buttons
+
+Next, we must handle this from our views in `main/views.py`:
+- the `index()` method
+
+```py
+
+```
+
+What we did here:
+- Check if we are using POST or GET
+- 
+
+#### Validation
+
+Try it out at http://127.0.0.1:8000/5
+
+Closing Thoughts:
+- This is how you make a custom form!
+- Shows you how to do pretty much anything in Django...
+
+#### Looking at the actual POST/GET requests
+
+When pressing Add Item button:
+
+<QueryDict: {'csrfmiddlewaretoken': ['u9FrSktUD1eZCo0Mb9eHR8T7QWHnjMP2gzDECksfJJHltRO1Yw3kOFqtZnBDXio0'], 'new': ['first'], 'newItem': ['newItem']}>
+[01/Aug/2023 17:54:23] "POST /5 HTTP/1.1" 200 1124
+<QueryDict: {'csrfmiddlewaretoken': ['5ec9uZ1YV7xX0LsXCHPBojy3T8757juPREameZ0j1P0jRegcp4EelQ5p2z1lLP3N'], 'new': ['second'], 'newItem': ['newItem']}>
+[01/Aug/2023 17:54:26] "POST /5 HTTP/1.1" 200 1392
+<QueryDict: {'csrfmiddlewaretoken': ['aTr9azCltzmO6ArniRGEsZZuBTHyj49rWjpmUzBGzhPaX3fC5evhpwwQKkBOXAIp'], 'new': ['third'], 'newItem': ['newItem']}>
+[01/Aug/2023 17:54:29] "POST /5 HTTP/1.1" 200 1660
+
+Meaning:
+- new: the name of the new item added
+- newItem: ['newItem'] (because this button was clicked!)
+- everything else: blank
+
+When pressing Save button:
+
+<QueryDict: {'csrfmiddlewaretoken': ['RIP057RN42GsS4io0F2Tp5oHlpqSLVZXD8NdP7Q8aK9OJx6DN2RwmCV3uQk8pryV'], 'c8': ['clicked'], 'save': ['save'], 'new': ['']}>
+[01/Aug/2023 17:56:35] "POST /5 HTTP/1.1" 200 2011
+<QueryDict: {'csrfmiddlewaretoken': ['x7fk8LPXv1YDTOh4IX4oV3zcEVtCTX8OjxdxSLOiBJrZKh5jvkT1SA6yNmnSxtHM'], 'c8': ['clicked'], 'c9': ['clicked'], 'save': ['save'], 'new': ['']}>
+[01/Aug/2023 17:56:36] "POST /5 HTTP/1.1" 200 2362
+<QueryDict: {'csrfmiddlewaretoken': ['ExfG4gvh1XpIVsEObKa9Oo6DtrYdFCgFqXdTOguC7FS4MVs3Y7ZMLVDZCSStj8PD'], 'c8': ['clicked'], 'c9': ['clicked'], 'c10': ['clicked'], 'save': ['save'], 'new': ['']}>
+[01/Aug/2023 17:56:37] "POST /5 HTTP/1.1" 200 2713
+
+Meaning
+- c8: ['clicked']: first is checked
+- c9: ['clicked']: second is checked
+- c10: ['clicked']: third is checked
+- save: ['save']: (because this button was clicked!)
+- new: [''] (we added nothing...)
+- everything else: blank
+
+
+Notes:
+- If you do not click a button or check an item, it simply won't get passed in the information
+- How .get() works: It is 'kinda' a dictionary
+  - if the item does not exist, it will return none
+
 ### Video #7: How to Add a Sidebar
+
+#### Intro
+
+Today's video: Adding a sidebar and making things look much nicer!
+
+Pages
+- home
+- view
+- create
+
+#### Add a sidebar with HTML
+
+What we do to add Sidebar: work from `main/base.html`
+- easy to work with, because adding it here adds it to every page!
+
+```html
+<html>
+<head>
+    <title>{% block title %}Tim's Site {% endblock %}</title>
+</head>
+
+<body>
+    {% comment %} this is all new {% endcomment %}
+    <div class="sidenav">
+        <a href="/home">Home</a>
+        <a href="/create">Create</a>
+        <a href="/2">View</a>
+    </div>
+
+    <div id="content", name="content", class="main">
+        
+        {% block content %}
+        Default value for title (gets rendered if nothing in the file inheriting)
+        {% endblock %}
+    </div>
+
+</body>
+</html>
+
+```
+
+What we did here in the body:
+- `div`: a way to style many elements at once
+  - div #1: sidenav
+    - `href`: where link goes when we click on it 
+      - added link tags (`<a>`)
+        - /home
+        - /create
+        - /2
+
+  - div #2: main
+  
+Next, create a .css stylesheet in the head tag to define what the sidenav will look like:
+
+#### CSS Style Tags
+
+```html
+<html>
+<head>
+    <!--
+    .sidenav: anything with class=sidenav
+    .sidenav a: any <a> tags in class=sidenav (tag within a class)
+    .sidenav a: hover: when you hover over any <a> tags in class=sidenav
+    
+    -->
+    <style type="text/css">
+        .sidenav {
+            height: 100%;
+            width:160px;
+            position: fixed;
+            z-index: 1; 
+            top: 0;
+            left: 0;
+            background-color: #111;
+            overflow-x: hidden;
+            padding-top: 20px;
+        }
+
+        .sidenav a {
+            padding: 6px 8px 6px 16px;
+            text-decoration: none;
+            font-size: 25px;
+            color: #818181;
+            display: block;
+        }
+
+        .sidenav a:hover{
+            color: #f1f1f1;
+        }
+
+        .main{
+            margin-left: 160px;
+            padding: 0px 10px;
+        }
+
+    </style>
+
+    <title>{% block title %}Tim's Site {% endblock %}</title>
+</head>
+
+<body>
+    {% comment %} this is all new {% endcomment %}
+    <div class="sidenav">
+        <a href="/home">Home</a>
+        <a href="/create">Create</a>
+        <a href="/2">View</a>
+    </div>
+
+    <div id="content", name="content", class="main">
+        
+        {% block content %}
+        Default value for title (gets rendered if nothing in the file inheriting)
+        {% endblock %}
+    </div>
+
+</body>
+</html>
+
+```
+
+Note: To move the main content over to the right, while keeping sidebar on left, we used this CSS:
+
+```css
+.main{
+  margin-left: 160px;
+  padding: 0px 10px;
+}
+```
+
+#### Trying it out
+
+```sh
+cd mysite
+python manage.py runserver
+```
+
+Note: We don't have a home/ page yet, so if you click on that, you will get an error
+
+This is so nice because django having `main/base.html` allows you to make a sidebar in minutes!
 
 ### Video #8: How to Add Bootstrap
 
+#### Intro
+
+Head to bootstrap's website and let's go!
+
+[Link to website](https://getbootstrap.com/docs/4.3/getting-started/introduction/)
+
+#### What is Bootstrap
+
+CSS/JavaScript/JQuery Framework
+- Built for mobile, expand for desktop after
+
+#### Download CSS
+
+Copy the stylesheet from the link above (Which is server on a content delivery network)
+- We don't actually need to download the stylesheet
+  - We are pulling the code from online
+
+```html
+<html>
+<head>
+    ...
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+
+    <title>...</title>
+</head>
+
+<body>
+...
+</body>
+</html>
+```
+
+Note: It should be at the bottom of the headtags, but right before the title!
+
+
+#### Add Meta Tags + DOCTYPE HTML
+
+Meta Tags: Setup properties for your website
+- Define type of characters
+- Help with mobile-look
+
+```html
+<!doctype html>
+<html>
+<head>
+    ...
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+
+    <title>...</title>
+</head>
+
+<body>
+...
+</body>
+</html>
+```
+
+Notes:
+- Make sure the meta tags are above the link
+- Do not forget `<!doctype html>` as the first line of code
+
+#### Add Scripts
+
+Scripts: Used by many of CSS classes
+- make things look nicer
+- animation / move things around the page
+
+```html
+<!doctype html>
+<html>
+<head>
+...
+</head>
+
+<body>
+...
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.14.7/dist/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+</body>
+</html>
+```
+
+Notes:
+- Add at very end of body tag
+- They are not REQUIRED but sometimes things will be off if you do not add them.
+
+We are now ready to use Bootstrap!
+
+#### Starting Out - Styling the Base Template
+
+Recommendation: Use Bootstrap Documentation to find the things you like!
+- They make it easy for you on there
+
+Adding code for `main/base.html` template:
+
+```html
+<div id="content", name="content", class="main">
+    <div class="row justify-content-center">
+        <div class="col-8">
+            <h1 class="mt-2">My Site</h1>
+            <hr class="mt-0 nb-4">
+            {% block content %}
+            {% endblock %}
+        </div>
+    </div>
+</div>
+```
+
+Note: I only edited this area around these 3 div's (1 existed already, anyhow)
+
+#### Testing
+
+```sh
+cd mysite
+python manage.py runserver
+```
+
+The base page looks so much nicer already!
+
+#### Styling Other Pages
+
+Styling the Create Page:
+
+```html
+<!-- create.html -->
+{% extends 'main/base.html' %}
+
+{% block title %} Create New List {% endblock %}
+
+{% block content %}
+<h3>Create Page</h3>
+<form method="post" action="/create/" class="form-group">
+    {% csrf_token %}
+    <div class="input-group mb-3">
+        <div class="input-group-prepend">
+            <button type="submit", name="save", class="btn btn-success">Create New</button>
+        </div>
+    {{form.name}}
+    </div>
+</form>
+{% endblock %}
+```
+
+Notes:
+- Prepend: Puts button on left side of input
+- Autofill: Comes from javascript
+  - Most of the nice stuff from from Django and/or JS
+
+
+Styling the View Page:
+
+```html
+<!-- list.html -->
+
+```
+
+Notes:
+- We combined the checkboxes text with prepend
+  - Text is added with an input box
+
+- You can edit the items, but it won't actually save to the DataBase.
+
+#### Boostrapping Documentation
+
+If you want to look at components
+- navbar
+- buttons
+- etc.
+
+You can copy whatever you want from here!
+
 ### Video #9: User Registration & Sign Up Page
+
+#### Intro
+
+Fortunately: Django does a lot of the hard work
+- All we have to do is format a form + a few others things
+- Django makes it a lot easier than usual
+
+And this is why people love Django!
+
+#### Create a new application
+
+Current status:
+- application: main
+
+Future status:
+- application: main
+- application: users
+
+
+#### Modify the URLs
+
+
+
+#### Create a Register Function
+
+
+
+#### Create a Register HTML File
+
+
+
+#### Create a form
+
+
+
+#### Run the server
+
+
+
+#### Create an account
+
+
+
+#### Create register form
+
+
+
+#### Import register form
+
+
+
+#### Install Cripsy Forms
+
+
+
+#### Add Cripsy Forms to Settings
+
+
+
+#### Configure Cripsy Forms
+
+
 
 ### Video #10: Login, Logout and User Authentication
 
 ### Video #11: User Specific Pages/Access
 
 ---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+
 
 ## Series: Tech With Tim - Django & React Tutorial
 
