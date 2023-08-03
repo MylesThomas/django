@@ -2062,52 +2062,453 @@ Current status:
 
 Future status:
 - application: main
-- application: users
+- application: users or register
+  - handles logging in and logging out
+    - can be copied and pasted between Django projects!
 
+Create the new app:
+
+```sh
+cd mysite
+python manage.py startapp register
+```
+
+You should now see 'register' in the 'mysite' directory.
 
 #### Modify the URLs
 
+Modify the URLs from within the `mysite/mysite/urls.py` file
+- Why? We will link to a view that we create in the new app, `register`
 
+Add a new path in `mysite/mysite/urls.py` that directs to a new page in `register`:
+
+```py
+# mysite/mysite/urls.py
+urlpatterns = [
+    path("admin/", admin.site.urls),
+    path("register/", ), # this is incomplete, we will come back to it...
+    path("", include("main.urls")),
+]
+
+```
 
 #### Create a Register Function
 
+Now, link it directly to the function that is in register application, ie. `register/views.py`:
 
+```py
+# register/views.py
+from django.shortcuts import render
+
+# Create your views here.
+def register(response):
+    return render()
+```
+
+Note: We clearly have not finished this function.
+
+Next, in `mysite/urls.py`, import the views.py so we can access everything inside of it, and then finish the line of code that directs to that path:
+
+```py
+# mysite/urls.py
+from register import views as v
+
+urlpatterns = [
+    path("admin/", admin.site.urls),
+    path("register/", v.register, name="register"),
+    path("", include("main.urls")),
+]
+```
+
+Now that we have linked these files up, let's make an actual register HTML page.
 
 #### Create a Register HTML File
 
+We begin this process the same as before, with a templates directory inside of `register`:
 
+```sh
+cd register
+mkdir templates
+cd templates
+mkdir register # hence the same name as app...
+cd register
+```
+
+Reminder: You have to make the subdirectory the same name of the app!
+
+Now, create the register.html file:
+
+```sh
+echo > register.html
+```
+
+We will extend from the base template in the other directory, as you will see in the following code chunk:
+
+```html
+<!-- register.html -->
+{% extends 'main/base.html' %}
+
+{% block title %}Create an Account{% endblock %}
+
+{% block content %}
+{% endblock %}
+```
+
+Note: Because we are in a different directory, make sure to specify where it is coming from.
+
+This file can now be rendered and displayed on the screen!
+
+Next, we will add a form to this same file, `register.html`:
+
+```html
+<!-- register.html -->
+{% extends 'main/base.html' %}
+
+{% block title %}Create an Account{% endblock %}
+
+{% block content %}
+    <form method="POST" class="form-group">
+        {% csrf_token %}
+        {{form}}
+        <button type="submit" class="btn btn-success">Register</button>
+    </form>
+{% endblock %}
+```
+
+What is going on here:
+- Form is method of POST: To make sure the information to create the account is secure when sending to backend
+- Added a button (Django does not automatically insert those for us)
+
+We have made a form - now let's pass the form to a view.
 
 #### Create a form
 
+We need to pass an actual form to the view of `register.html`, we created. 
 
+Django automates the form for logging in and creating a new account
+- makes it for you
+
+So, all we need to do is import the built-in Django form, and pass it into our template where we have {{form}}
+
+In `register/views.py`:
+
+```py
+from django.shortcuts import render
+from django.contrib.auth import login, authenticate
+from django.contrib.auth.forms import UserCreationForm # used to create a new user
+
+# Create your views here.
+def register(response):
+    form = UserCreationForm()
+    return render(response, "register/register.html", {"form": form})
+```
+
+One more step: We need to add the application of 'register' into `mysite/mysite/settings.py`:
+
+```py
+INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    'main.apps.MainConfig',
+    'register.apps.RegisterConfig', # new, comes from mysite/register/apps.py
+]
+```
 
 #### Run the server
 
+Now, if we run the server and go to this endpoint, we should see a form showing up!
 
+```sh
+cd mysite
+python manage.py runserver
+```
+
+http://127.0.0.1:8000/register/
+
+This form is not styled yet, but we already have a user registration window!
+
+Note:
+- If we type anything in here, the register button does nothing right now!
+  - Just like making a form before, we need to add functionality to save the form AND create the new user in the database
+
+Let's validate that we can start saving things before we do any styling:
+
+Go into `register/views.py` and add functionality to create a new user:
+
+```py
+from django.shortcuts import render
+from django.contrib.auth import login, authenticate
+from django.contrib.auth.forms import UserCreationForm # used to create a new user
+
+# Create your views here.
+def register(response):
+    if response.method == "POST": # create a new user
+        form = UserCreationForm(response.POST)
+        if form.is_valid():
+            form.save() # What this does: Saves new user info into the users database
+    
+    else: # if for some reason we are not getting the post request...
+        form = UserCreationForm()
+        
+    return render(response, "register/register.html", {"form": form})
+```
+
+We are not done totally, but should have enough to create a user in the database.
 
 #### Create an account
 
+http://127.0.0.1:8000/register/
 
+username: techwithtim
+password: techwithtim123
+
+Notes:
+- I got an error...
+
+Using the URLconf defined in mysite.urls, Django tried these URL patterns, in this order:
+
+admin/
+register/ [name='register']
+<int:id> [name='index']
+[name='home']
+create/ [name='create']
+The current path, register/POST, didn’t match any of these.
+
+What I think this means: The return value of the method register() in `register/views.py` directs you to / render HTML that does not exists in the `mysite/urls.py`.
+
+What the actual error was: I had something wrong in my form ie. `register.html`:
+
+```html
+<!-- before (wrong) -->
+<form action="POST" class="form-group">
+
+<!-- after (correct) -->
+<form method="POST" class="form-group">
+```
+
+We have successfully registered a new user now!
+
+Let's check to see if the user is in the Users database: http://127.0.0.1:8000/admin/
+- Authentication and Authorization > Users
+
+I only see the original still......
+
+fffffffffffffffff
+
+Next, how to get email/first name/last name, AND redirect to a new page once you create an account!
 
 #### Create register form
 
+Head into `register/views.py` and add this functionality so you head to the home page:
 
+```py
+from django.shortcuts import render, redirect # new
+
+...
+
+def register(response):
+    if response.method == "POST":
+        form = UserCreationForm(response.POST)
+        if form.is_valid():
+            form.save() 
+
+        return redirect("/home") # new
+```
+
+Next, add new fields to our form by editing inside of our application:
+
+```sh
+cd mysite
+cd register
+echo > forms.py
+```
+
+And in that new file, `register/forms.py`:
+
+```py
+from django import forms
+from django.contrib.auth import login, authenticate
+from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.models import User
+
+class RegisterForm(UserCreationForm):
+    email = forms.EmailField()
+    
+    class Meta:
+        model = User # changes user model when we save something into this form
+        
+        fields = ["username", "email", "password1", "password2", ] # in order...
+        # fields: lays out where we want the fields to be
+        # email would not show up because it is currently not in the parent class!
+        # We type them in in the order we want them to appear in the form
+```
+
+What we did:
+- Import the same things as before
+- Inherit from UserCreationForm
+  - but then added new fields to it....
+
+- Something that we have not done before: Changing the parent properties of the class
+  - create new class `Meta` inside of this class
+    - defines the fact that this register form is going to save into the Users database
 
 #### Import register form
 
+Now that we have created this `RegisterForm`, we must import it and use that instead of its parent of UserCreationForm!
 
+In `register/views.py`:
+
+```py
+from django.shortcuts import render, redirect
+from .forms import RegisterForm
+
+# Create your views here.
+def register(response):
+    if response.method == "POST": 
+        form = RegisterForm(response.POST)
+        if form.is_valid():
+            form.save() 
+
+        return redirect("/home")
+        
+    else: 
+        form = RegisterForm()
+        
+    return render(response, "register/register.html", {"form": form})
+```
+
+Now, we can reload the page and see what we get!
+
+```sh
+cd mysite
+python manage.py runserver
+```
+
+http://127.0.0.1:8000/register/
+
+It may be messy, but we now have the following (in order):
+- username
+- email
+- password
+- password confirmation
+
+Let's make this a little nicer with Bootstrap and Crispy Forms!
 
 #### Install Cripsy Forms
 
+Cripsy Forms: Popular form framework used in Django
+- downloadable via pip
 
+```sh
+pip install django-crispy-forms
+pip list # make sure it is in the virtual env...
+```
+
+What it has:
+- automatic styling for our forms
+- it is easy to use!
+
+Once you have it installed (I have version 2.0), we have a few more steps to take.
 
 #### Add Cripsy Forms to Settings
 
+First, head into `mysite/settings.py` and add crispy forms:
 
+```py
+INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    "crispy_forms", # new
+    'main.apps.MainConfig',
+    'register.apps.RegisterConfig',
+]
+```
 
 #### Configure Cripsy Forms
 
+Next, in the same file `mysite/settings.py`, define the CSS framework layout that crispy forms uses:
 
+```py
+# bottom line of code under STATIC_URL
+CRISPY_TEMPLATE_PACK = "bootstrap4"
+```
+
+What this means:
+- We are using bootstrap 4
+  - default: uses bootstrap 2
+  - you can use others too! (we are already using bootstrap4 in the project, so not us)
+
+Now that that work is done, we actually have to use/implement crispy forms!
+
+#### Implement Crispy Forms
+
+Now that they are imported and setup in the project, we have to do the following in `register/register.html` using it:
+
+```html
+{% block title %}Create an Account{% endblock %}
+{% load crispy_forms_tags %} <!-- new line -->
+```
+
+Then, to actually use it, we add `|crispy` after `form` in the HTML of `register/register.html`
+
+```html
+{{form|crispy}}
+```
+
+What this does:
+- it is a filter
+  - in a nutshell: modifies the form, adds styling to it
+
+Let's check it out in the server!
+
+```sh
+cd mysite
+python manage.py runserver
+```
+
+http://127.0.0.1:8000/register/
+
+Notes: I am getting an error about "TemplateDoesNotExist at /register/
+bootstrap4/uni_form.html
+- This is why: [Link to Stackoverflow](https://stackoverflow.com/questions/75495403/django-returns-templatedoesnotexist-when-using-crispy-forms)
+  - Remedy: Instead of using bootstrap4 and crispy-forms, you must do the following:
+    - Uninstall un-needed package
+    - Install needed package
+    - Add crispy_bootstrap4 to your list of INSTALLED_APPS.
+
+```sh
+# pip uninstall django-crispy-forms (we end up downloading it again...)
+pip install crispy-bootstrap4
+```
+
+```py
+# mysite/settings.py
+INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    "crispy_forms", # keep as-is
+    "crispy_bootstrap4", # this is what matters here.
+    'main.apps.MainConfig',
+    'register.apps.RegisterConfig',
+]
+...
+CRISPY_TEMPLATE_PACK = "bootstrap4" # keep as-is
+```
+
+Now our forms look crispy!
+- We could probably add a sidebar, but we can come back to that later...
 
 ### Video #10: Login, Logout and User Authentication
 
