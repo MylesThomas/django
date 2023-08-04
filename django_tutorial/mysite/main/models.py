@@ -1,36 +1,22 @@
 from django.db import models
+from django.contrib.auth.models import User # NEW
+
 
 # Create your models here.
-
-# #1. creating database object
-# (we create a class variable that has name of field AND data type)
 class ToDoList(models.Model):
-    # define attributes
-    # name
-    name = models.CharField(max_length=200) # name=name, dtype=string
-
-    # method to get meaningful text (useful for prints)
+    # related_name: name/way with which you access it in html
+    # null: 
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="todolist", null=True) # NEW: every to do list we make will be linked to some user
+    name = models.CharField(max_length=200) 
+    
     def __str__(self):
         return self.name
-    
-# 2. item for to do lsit
-# (a little different since it is related to the todolist object)
+
+
 class Item(models.Model):
-    # ForeignKey: an undefined object for many-to-one relationships
-    ### to do list: can only be 1
-    ### items in the list: can be infinite!
-
-    # on_delete=models.CASCADE:
-    ### "if, we delete todolist 
-    ### then, delete all items for that to dolist"
-    todolist = models.ForeignKey(ToDoList, on_delete=models.CASCADE) 
-    
-    # text: character field
-    text = models.CharField(max_length=300) # note: always complete max_length arg
-
-    # complete: boolean field (have we finished making this item?)
+    todolist = models.ForeignKey(ToDoList, on_delete=models.CASCADE)
+    text = models.CharField(max_length=300) 
     complete = models.BooleanField()
 
-    # the meaningful text
     def __str__(self):
         return self.text

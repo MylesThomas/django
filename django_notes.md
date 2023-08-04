@@ -839,7 +839,7 @@ Users: Stores the user we just created
 
 Where is our database that we have been creating data with, though?
 
-#### Give the dashboatd access to our database
+#### Give the dashboard access to our database
 
 By default, 'main' is empty since nothing is registered in `main/admin.py`.
 
@@ -1974,7 +1974,7 @@ Adding code for `main/base.html` template:
     <div class="row justify-content-center">
         <div class="col-8">
             <h1 class="mt-2">My Site</h1>
-            <hr class="mt-0 nb-4">
+            <hr class="mt-0 mb-4">
             {% block content %}
             {% endblock %}
         </div>
@@ -2510,29 +2510,548 @@ CRISPY_TEMPLATE_PACK = "bootstrap4" # keep as-is
 Now our forms look crispy!
 - We could probably add a sidebar, but we can come back to that later...
 
+#### Git
+
+```sh
+cd django
+git status
+git add .
+git commit -m "Completed Video #9 of Tim's django_tutorial"
+git push -u origin main
+git status
+```
+
 ### Video #10: Login, Logout and User Authentication
+
+Today's video: Logging in and Authenticating Users
+- restricting pages to certain users
+
+Next video: Customer user model
+- looking at only your own stuff, essentially
+
+#### Django contrib auth
+
+Built in function: django.contrib.auth (it is already in INSTALLED_APPS in `mysite/settings.py`)
+- Authenticates users
+  - We do hard work of creating new users
+  - Django does work of authenticating them
+
+Step #1: Use some pages built by Django
+Examples:
+- login
+- logout
+- change password
+
+We can access these, simply by linking them to `mysite/urls.py`:
+
+```py
+from django.contrib import admin
+from django.urls import path, include
+from register import views as v
+
+urlpatterns = [
+    path("admin/", admin.site.urls),
+    path("register/", v.register, name="register"),
+    path("", include("main.urls")),
+    path("", include("django.contrib.auth.urls")),
+]
+```
+
+What this will do now:
+- it will go to the `urls.py` file/application in the directory of django/contrib/auth
+- will confirm/check if we have a valid url
+  - ie. any of the built in pages like login/logout
+
+But, if we try to go to these views now, they don't actually exist yet!
+- What the views attempt to do is render templates ie. `login.html` and `logout.html`
+  - This gets done from a folder we create
+
+#### Login form
+
+Let's create a new folder in `register/templates` named `registration`, and create a new file `login.html`:
+
+```sh
+cd register
+cd templates
+mkdir registration
+cd registration
+echo login.html > login.html
+```
+
+```html
+<!-- login.html -->
+{% extends 'main/base.html' %}
+
+{% block title %}
+Login Here
+{% endblock %}
+
+{% load crispy_forms_tags %}
+
+{% block content %}
+    <form method="POST" class="form-group">
+        {% csrf_token %}
+        {{form|crispy}}
+        <p>Don't have an account? Create one <a href="/register">here</a></p>
+        <button type="submit" class="btn btn-success">Login</button>
+    </form>
+{% endblock %}
+```
+
+Notes:
+- Added some p tags for if you don't have an account (then an a tag if you actually don't, and want to create one)
+
+That is it for the login page!
+
+#### Login redirect
+
+Now, let's run the server and see that the login page works:
+
+```sh
+cd mysite
+python manage.py runserver
+```
+
+[Link](http://127.0.0.1:8000/login)
+
+What will happen here: 
+- properly log users in
+- properly validate
+
+When you try logging in, what happens?
+- For me: I am directed to http://127.0.0.1:8000/accounts/profile/, and get an error: 
+
+Page not found (404)
+Request Method:	GET
+Request URL:	http://127.0.0.1:8000/accounts/profile/
+Using the URLconf defined in mysite.urls, Django tried these URL patterns, in this order:
+
+Note: Tim is redirected to the home page ie. http://127.0.0.1:8000, I do not know why ours are different, but we will find out soon enough!
+- Tim says it is because of a setting in `mysite/settings.py`
+  - He proves this by showing us on the screen himself...
+
+How to fix this and get back to home page?
+
+```py
+# settings.py
+...
+
+CRISPY_TEMPLATE_PACK = "bootstrap4"
+
+LOGIN_REDIRECT_URL = "/" # NEW
+```
+
+What was happening:
+- When you try to login, they try to direct you to /accounts/profile
+  - This does not exist yet, as we did not make it!
+  - We need to change the settings so that this is overcome (for now)
+
+Now when you re-run, you will see that you are directed to the homepage.
+- Start: http://127.0.0.1:8000/login/
+- End: http://127.0.0.1:8000/
+
+
+#### User authentication
+
+What is actually going on in the backend when we login?
+- 
+
+How to tell if a user is logged in: `user.is_authenticated`
+- By default: Django webpages have a `user` attribute
+  - stands for current user
+  - if no user is signed in, defaults to anon
+  - calling user.is_authenticated on anon will return `false`.
+
+Let's illustrate by editing some code from `main/base.html`:
+
+```html
+<div id="content", name="content", class="main">
+        <div class="row justify-content-center">
+            <div class="col-8">
+                <h1 class="mt-2">My Site</h1>
+                <hr class="mt-0 mb-4">
+
+                {% if user.is_authenticated %}
+                    {% block content %}
+                    {% endblock %}
+                {% else %}
+                    <p>Login <a href="/login">Here</a></p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+```
+
+Goal here:
+- if logged in: show content!
+- if NOT logged in: tell the user to login, leave a link for the login page
+
+Now that we have implemented this into our code, let's try it out:
+
+```sh
+cd mysite
+python manage.py runserver
+```
+
+First, logout: http://127.0.0.1:8000/logout/
+
+Next, head to home to (try to) view the block content: http://127.0.0.1:8000/
+
+Note: We are stuck now that we are not logged in, so this is not a final solution. Put your code back to how it was before:
+
+```html
+<!-- main/base.html -->
+<div id="content", name="content", class="main">
+    <div class="row justify-content-center">
+        <div class="col-8">
+            <h1 class="mt-2">My Site</h1>
+            <hr class="mt-0 mb-4">
+            {% block content %}
+            {% endblock %}
+        </div>
+    </div>
+</div>
+```
+
+#### Optional: Change logout redirect
+
+```py
+# mysite/settings.py
+LOGIN_REDIRECT_URL = "/"
+LOGOUT_REDIRECT_URL = "/" # NEW
+```
+
+If you create a logout template, you can direct it there instead of the home page.
+
+#### Optional: Using response.user in Python Code
+
+```py
+# register/views.py
+response.user
+```
+
+response.user: gives user 
+- user authentication status 
+- attributes
+  - name
+  - password
+  - email
+
+- can pass into content of the page
 
 ### Video #11: User Specific Pages/Access
 
----
+#### Intro
+
+Tim: Was going to do custom user models, but to do what he wants, you do not need to use those
+- they overcomplicated things
+- we will do it the original way
+  - if you want to do custom user modules, there are other tutorials
+
+Goal of this video: Make specific to do lists for specific users
+- When you log in, you see only your things
+  - just like facebook, users see custom posts
+
+#### Importing User Model
+
+Starting out, in `main/models.py`, we will add a Foreign Key to ToDoList() called `user`
+- now, users will have a ToDoList set
+  - you can view all of that user's ToDoList's
+
+```py
+from django.db import models
+from django.contrib.auth.models import User # NEW
+
+# Create your models here.
+class ToDoList(models.Model):
+    # related_name: name/way with which you access it in html
+    # null: 
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="todolist", null=True) # NEW: every to do list we make will be linked to some user
+    name = models.CharField(max_length=200) 
+    
+    def __str__(self):
+        return self.name
+```
+
+What this code does:
+- import User
+- make it so that each ToDoList is linked to a user
+
+Notes:
+- we first tried settings this up without `related_name=todolist` OR `null=True`, and we got errors
+- 
+
+Next, we need to make some migrations so that our database is updated accordingly.
+
+#### Optional: Delete Everything
+
+Notes from Tim: The migrations should be created for you. (automatically)
+- If for some reason this does not work, do the following:
+  - Delete database file `db.sqlite3`
+  - Delete everything in `migrations`, namely `__pycache__`
+    - so everything except for `__init__.py`
+
+Note: This is for all of the migrations folders, which for us is 2: (`main/migrations`, `register/migrations`)
+
+If you have further changes to be made to either of your models.py files, do so now as well.
+- We already did ours above, so good to go here!
+
+#### Make Migrations
+
+As noted above, when you make edits to your database and models, you must make migrations.
+
+Finish up by doing the following:
+- `makemigrations`: for creating new migrations based on the changes you have made to your models
+- `migrate`: for applying and unapplying migrations.
+
+```sh
+cd mysite
+python manage.py makemigrations
+python manage.py migrate
+```
+
+After doing this, you should see a new db.sqlite3 file appear!
+
+[Stackoverflow Reference](https://stackoverflow.com/questions/42150499/how-do-i-delete-db-sqlite3-in-django-1-9-to-start-from-scratch)
+
+
+#### Saving ToDoList
+
+Let's change the code in `main/views.py` so that the ToDoLists are saved to a specific user:
+
+```py
+# main/views.py
+if form.is_valid():
+  n = form.cleaned_data["name"]
+  t = ToDoList(name=n)
+  t.save()
+  response.user.todolist.add(t) # this still links back to the id
+```
+
+Note: You can still access our to do lists using id of the ToDoList, but we are going to modify this a little bit so you can only access ids/to do lists that are yours:
+- Can only 
+- Check if ID is in user set, grant permission if yes.
+
+We want to now be able to go to all of our to do lists.
+
+#### Viewing ToDoList
+
+Now, in our HTML file, we had setup a temporary endpoint to send us to ToDoList with id=2 - let's change that in our `main/templates/main/base.html` file:
+
+```html
+<!-- old -->
+<a href="/2">View</a>
+
+<!-- new -->
+<a href="/view">View</a>
+```
+
+Now, we are being sent to the correct page with HTML.
+
+We must update our url's in `main/urls.py` to reflect this:
+
+```py
+urlpatterns = [
+    path("<int:id>", views.index, name="index"),
+    path("", views.home, name="home"),
+    path("home/", views.home, name="home"),
+    path("create/", views.create, name="create"),
+    path("view/", views.view, name="view"),
+]
+```
+
+Next, create the method view() in `main/views.py`
+- (Currently as it stands, views.view is going to get an import error as it is linking to nothing).
+
+```py
+# main/views.py
+def view(response):
+    return render(response, "main/view.html", {})
+```
+
+Once again, we are linking to something that does not exist yet - create `main/view.html` so that our view can link to a view template:
+
+```sh
+cd main
+cd templates
+cd main
+echo > view.html
+```
+
+Our view will extend from the base template:
+
+```html
+<!-- main/view.html -->
+{% extends 'main/base.html' %}
+
+{% block title %}
+View
+{% endblock %}
+
+{% block content %}
+    {% for td in user.todolist.all %}<!--  use .all instead of _set (set is not iterable) -->
+        <p><a href="/{{td.id}}">{{td.name}}</a></p>
+    {% endfor %}
+{% endblock %}
+
+```
+
+What this does:
+- Basic title
+- For loop through all of the different to do lists (for this user)
+  - if: 
+  - then: 
+
+In the end, we should see all of our to do lists in a list-type form, with links to the lists.
+- Click on the link to access to do lists
+
+Let's try it out!
+
+#### Optional: Create Super User
+
+I deleted everything in one of the optional steps above, so there are no users in /admin, and I will be stuck at the login page again.
+
+Do this to create a super user:
+
+Create superuser:
+
+```sh
+python manage.py createsuperuser
+```
+
+After filling in the info, Fire the server up again...
+
+```sh
+cd mysite
+python manage.py runserver
+chrome.exe http://127.0.0.1:8000/admin
+```
+
+There is this in the database now:
+- 0 Groups
+- 1 Users
+- 0 Items
+- 0 To do lists
+
+Excellent!
+
+#### Testing it out
+
+```sh
+cd mysite
+python manage.py runserver
+```
+
+Note: You must be logged in to see any of your to do lists, so let's do that from the start.
+
+Go to login: http://127.0.0.1:8000/login/
+
+Create your first to do list and name it 'l1': http://127.0.0.1:8000/create/
+- You will be redirected to http://127.0.0.1:8000/1
+
+Next, 'add item' the following 3 items:
+- uno
+- dos
+- tres
+
+Hit 'save' when you are finished. (This will do nothing, since you did not check off any of the 3 items...)
+
+Create your first to do list and name it 'l2': http://127.0.0.1:8000/create/
+- You will be redirected to http://127.0.0.1:8000/2
+
+Next, 'add item' the following 2 items:
+- small item
+- big item
+
+Check the box so that small item is complete, but big item is not, and press save.
+
+Finally, view your 2 new lists at the view page: http://127.0.0.1:8000/view/
+
+Nice work!
+
+#### Creating Another Account
+
+Let's make another account and create a 3rd to do list and see how this works.
+
+Logout: http://127.0.0.1:8000/logout/
+- For fun, you can go to the View page and see that nothing is there now.
+
+Make the new account: http://127.0.0.1:8000/register/
+- username: techwithtim
+- email: techwithtim@gmail.com
+- password: techwithtim123
+
+fffffffffffffffffffffffff
+
+I am seeing now that somewhere my code for adding a new user is flawed.... :(
+
+Login:
+- If you don't login and try to create a new list, you will get an error like this:
+
+```
+AttributeError at /create/
+'AnonymousUser' object has no attribute 'todolist'
+```
+
+Create a new page and name it 'Tim's list': http://127.0.0.1:8000/create/
+
+...
+tbd
+
+#### Adding Functionality so that you can only view your own To Do Lists
+
+As it stands when you are logged in:
+- You do not see other people's to do lists on the view/ page
+  - BUT, you can go into the url and type http://127.0.0.1:8000/1/, and you will see the list, even if you did not create that list
+
+Let's change that!
+
+Head over to `main/views.py` and add functionality to block other's from viewing others' lists:
+
+```py
+# main/views.py
+def index(response, id):
+    ls = ToDoList.objects.get(id=id)
+    
+    # check if it is in that user's list:
+    if ls in response.user.todolist.all():
+
+        if response.method == "POST":
+            print(response.POST)
+            if response.POST.get("save"):
+                for item in ls.item_set.all():
+                    if response.POST.get("c" + str(item.id)) == "clicked":
+                        item.complete = True
+                    else:
+                        item.complete = False
+                        
+                    item.save()
+                
+            elif response.POST.get("newItem"):
+                txt = response.POST.get("new")
+                if len(txt) > 2:
+                    ls.item_set.create(text=txt, complete=False)
+                else:
+                    print("invalid")
+        
+        return render(response, "main/list.html", {"ls": ls})
+    
+    else:
+        # can render error page OR homepage OR their own view page
+        return render(response, "main/view.html", {})
+```
+
+What we did here:
+- Checked if to do list is in user's list
+  - if yes: continue
+  - if not: deny access
+    - 3 options here: send to homepage OR give an error page OR view their own view page
+      - I chose to send to that user's own view page
+
+Now, if another user tries to access your list, they will be re-directed away.
+- This is not the most secure way in the world, but is a basic example that works good enough for now!
 
 ---
-
----
-
----
-
----
-
----
-
----
-
----
-
----
-
-
 
 ## Series: Tech With Tim - Django & React Tutorial
 
