@@ -3051,6 +3051,25 @@ What we did here:
 Now, if another user tries to access your list, they will be re-directed away.
 - This is not the most secure way in the world, but is a basic example that works good enough for now!
 
+# End of Series
+
+#### Git
+
+```sh
+git status
+git add .
+git commit -m "Completed Tech With Tim's Django Tutorial Course"
+git push -u origin main
+git status
+git log --oneline
+```
+
+#### Deactivate Virtual Environment
+
+```sh
+deactivate
+```
+
 ---
 
 ## Series: Tech With Tim - Django & React Tutorial
